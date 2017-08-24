@@ -1,6 +1,6 @@
 # http-proxy
 
-Compile at: CentOS 6.5 64bit
+Compiled at: CentOS 6.5 64bit
 
 Linux C multiprocess http proxy server by GMSSL and Libevent
 
