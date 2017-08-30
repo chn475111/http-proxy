@@ -129,16 +129,17 @@ SSL_CTX *ssl_ctx_init(char *ca, char *crl, char *cert, char *key, \
     length = passwd_decrypt((unsigned char*)passwd, passwd ? strlen(passwd) : 0, password, length);
     if(length <= 0)
     {
-        log_err("passwd decrypt failed - %s", passwd);
-        goto ErrP;
+        log_warning("passwd decrypt failed - %s", passwd);
+        SSL_CTX_set_default_passwd_cb_userdata(ctx, (void*)passwd);
     }
-    log_debug("passwd decrypt succeed - %s", password);
-    SSL_CTX_set_default_passwd_cb_userdata(ctx, (void*)password);
-#else
-    SSL_CTX_set_default_passwd_cb_userdata(ctx, (void*)passwd);
+    else
+    {
+        log_debug("passwd decrypt succeed - %d: %s", length, password);
+        SSL_CTX_set_default_passwd_cb_userdata(ctx, (void*)password);
+    }
 #endif
 
-    if(is_file_exist(cert) && is_file_exist(key))
+    if(is_file_exist(cert) || is_file_exist(key))
     {
         if(SSL_CTX_use_certificate_file(ctx, cert, get_format_from_file(cert)) != 1)
         {
@@ -157,7 +158,7 @@ SSL_CTX *ssl_ctx_init(char *ca, char *crl, char *cert, char *key, \
         }
     }
 
-    if(is_file_exist(enccert) && is_file_exist(sigcert) && is_file_exist(enckey) && is_file_exist(sigkey))
+    if(is_file_exist(enccert) || is_file_exist(sigcert) || is_file_exist(enckey) || is_file_exist(sigkey))
     {
         if(SSL_CTX_use_certificate_file_ext(ctx, enccert, sigcert, get_format_from_file(enccert)) != 1)
         {

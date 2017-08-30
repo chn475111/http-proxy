@@ -9,11 +9,14 @@ int get_format_from_file(char *filename)
     int filesize = 0;
     char *file = NULL;
 
+    if(filename == NULL)
+        return -1;
+
     ret = file_mmap(filename, &file, &filesize);
     if(ret != 0)
         return -1;
 
-    if(strcasestr(file, "-----") != NULL)
+    if(strcasestr(file, "-----") != NULL || file[0] != 0x30)
     {
         file_munmap(file, filesize);
         return SSL_FILETYPE_PEM;        //pem编码

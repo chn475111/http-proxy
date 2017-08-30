@@ -143,6 +143,7 @@ void timer_exit(timer_root_t *root)
     while((rbnode = rb_first(&root->rbroot)))
     {
         pos = rb_entry(rbnode, timer_node_t, rbnode);
+        log_debug("expire - %lld\n", pos->expire);
         timer_remove(root, pos);
     }
 }

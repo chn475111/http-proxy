@@ -18,17 +18,17 @@ enum log_level log_get_level(const char *level)
     if(level == NULL)
         return LOG_LEVEL_INFO;
 
-    if(strncasecmp(level, "crit", 4) == 0)
+    if(strcasecmp(level, "crit") == 0)
         return LOG_LEVEL_CRIT;
-    else if(strncasecmp(level, "err", 3) == 0)
+    else if(strcasecmp(level, "err") == 0)
         return LOG_LEVEL_ERR;
-    else if(strncasecmp(level, "warning", 7) == 0)
+    else if(strcasecmp(level, "warning") == 0)
         return LOG_LEVEL_WARNING;
-    else if(strncasecmp(level, "notice", 6) == 0)
+    else if(strcasecmp(level, "notice") == 0)
         return LOG_LEVEL_NOTICE;
-    else if(strncasecmp(level, "info", 4) == 0)
+    else if(strcasecmp(level, "info") == 0)
         return LOG_LEVEL_INFO;
-    else if(strncasecmp(level, "debug", 5) == 0)
+    else if(strcasecmp(level, "debug") == 0)
         return LOG_LEVEL_DEBUG;
     else
         return LOG_LEVEL_INFO;
