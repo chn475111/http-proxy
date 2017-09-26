@@ -294,8 +294,8 @@ void service_worker_process(void *data)
     signals_register();
     event_base_dispatch(work->base);        //main loop
 
-    event_del(&ev_sigint);
-    event_del(&ev_sigterm);
+    evsignal_del(&ev_sigint);
+    evsignal_del(&ev_sigterm);
     if(work)
     {
         for(loop = 0; loop < MAX_CONN_NUM; loop ++)
@@ -304,7 +304,7 @@ void service_worker_process(void *data)
             ssl_ctx_exit(work->ctx[loop]);
         INIT_LIST_HEAD(&work->list);
         timer_exit(&work->timer);
-        event_del(&work->ev_timer);
+        evtimer_del(&work->ev_timer);
         event_base_free(work->base);
         free(work);
     }
@@ -317,8 +317,8 @@ void service_worker_process(void *data)
     log_close();
     exit(EXIT_SUCCESS);
 ErrP:
-    event_del(&ev_sigint);
-    event_del(&ev_sigterm);
+    evsignal_del(&ev_sigint);
+    evsignal_del(&ev_sigterm);
     if(work)
     {
         for(loop = 0; loop < MAX_CONN_NUM; loop ++)
@@ -327,7 +327,7 @@ ErrP:
             ssl_ctx_exit(work->ctx[loop]);
         INIT_LIST_HEAD(&work->list);
         timer_exit(&work->timer);
-        event_del(&work->ev_timer);
+        evtimer_del(&work->ev_timer);
         event_base_free(work->base);
         free(work);
     }

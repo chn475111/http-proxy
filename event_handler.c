@@ -72,6 +72,7 @@ void tcp_accept_from_frontend(int fd, short events, void *data)
     {
         log_err("%s tcp connect to backend \"%s:%hu\" failed - %d: %s", conf->ctrl[slot].serverName, conf->addr[slot].backend_ip, conf->addr[slot].backend_port, errno, strerror(errno));
         tcp_close(frontend_fd);
+        tcp_close(backend_fd);
         return;
     }
     log_debug("%s tcp connect to backend \"%s:%hu\" succeed", conf->ctrl[slot].serverName, conf->addr[slot].backend_ip, conf->addr[slot].backend_port);
@@ -262,10 +263,10 @@ void ssl_read_from_frontend(int fd, short events, void *data)
     length = tcp_send(peer->fd, (char*)value, length);
     if(length < 0)
     {
-        log_err("%s ssl write data to backend \"%s:%hu\" failed - %d: %s", conf->ctrl[slot].serverName, peer->ip, peer->port, errno, strerror(errno));
+        log_err("%s tcp send data to backend \"%s:%hu\" failed - %d: %s", conf->ctrl[slot].serverName, peer->ip, peer->port, errno, strerror(errno));
         goto ErrP;
     }
-    log_debug("2, %s ssl write data to backend \"%s:%hu\" succeed - %d: %s", conf->ctrl[slot].serverName, peer->ip, peer->port, length, value);
+    log_debug("2, %s tcp send data to backend \"%s:%hu\" succeed - %d: %s", conf->ctrl[slot].serverName, peer->ip, peer->port, length, value);
 #endif
 
     timer_remove(&work->timer, &work->conn[fd].timer);
