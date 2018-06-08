@@ -114,13 +114,9 @@
 # define EVP_PKEY_DSA4   NID_dsaWithSHA1_2
 # define EVP_PKEY_DH     NID_dhKeyAgreement
 # define EVP_PKEY_DHX    NID_dhpublicnumber
-# define EVP_PKEY_EC     NID_X9_62_id_ecPublicKey    //ljk 408
+# define EVP_PKEY_EC     NID_X9_62_id_ecPublicKey
 # define EVP_PKEY_HMAC   NID_hmac
 # define EVP_PKEY_CMAC   NID_cmac
-
-# ifndef OPENSSL_NO_SM2
-#  define EVP_PKEY_SM2    NID_sm2p256v1 /* FIXME: NID_sm2 */
-# endif
 
 #ifdef  __cplusplus
 extern "C" {
@@ -253,14 +249,6 @@ typedef int evp_verify_method(int type, const unsigned char *m,
 #  else
 #   define EVP_PKEY_ECDSA_method   EVP_PKEY_NULL_method
 #  endif
-
-#ifndef OPENSSL_NO_SM2
-#define EVP_PKEY_SM2_method        (evp_sign_method *)SM2_sign, \
-                                (evp_verify_method *)SM2_verify, \
-                                {EVP_PKEY_EC,EVP_PKEY_SM2,NID_sm2sign_with_sm3,0}
-#else   
-#define EVP_PKEY_SM2_method     EVP_PKEY_NULL_method
-#endif
 
 #  ifndef OPENSSL_NO_RSA
 #   define EVP_PKEY_RSA_method     (evp_sign_method *)RSA_sign, \
@@ -519,11 +507,6 @@ typedef int (EVP_PBE_KEYGEN) (EVP_CIPHER_CTX *ctx, const char *pass,
                                         (char *)(eckey))
 # endif
 
-# ifndef OPENSSL_NO_SM2
-#  define EVP_PKEY_assign_SM2(pkey,eckey) EVP_PKEY_assign((pkey),EVP_PKEY_SM2,\
-                                        (char *)(eckey))
-# endif
-
 /* Add some extra combinations */
 # define EVP_get_digestbynid(a) EVP_get_digestbyname(OBJ_nid2sn(a))
 # define EVP_get_digestbyobj(a) EVP_get_digestbynid(OBJ_obj2nid(a))
@@ -567,11 +550,9 @@ unsigned long EVP_CIPHER_CTX_flags(const EVP_CIPHER_CTX *ctx);
 # define EVP_DECODE_LENGTH(l)    ((l+3)/4*3+80)
 
 # define EVP_SignInit_ex(a,b,c)          EVP_DigestInit_ex(a,b,c)
-# define EVP_SignInit_ext(a,b,c,d)       EVP_DigestInit_ext(a,b,c,d)
 # define EVP_SignInit(a,b)               EVP_DigestInit(a,b)
 # define EVP_SignUpdate(a,b,c)           EVP_DigestUpdate(a,b,c)
 # define EVP_VerifyInit_ex(a,b,c)        EVP_DigestInit_ex(a,b,c)
-# define EVP_VerifyInit_ext(a,b,c,d)     EVP_DigestInit_ext(a,b,c,d)
 # define EVP_VerifyInit(a,b)             EVP_DigestInit(a,b)
 # define EVP_VerifyUpdate(a,b,c)         EVP_DigestUpdate(a,b,c)
 # define EVP_OpenUpdate(a,b,c,d,e)       EVP_DecryptUpdate(a,b,c,d,e)
@@ -611,7 +592,6 @@ void EVP_MD_CTX_set_flags(EVP_MD_CTX *ctx, int flags);
 void EVP_MD_CTX_clear_flags(EVP_MD_CTX *ctx, int flags);
 int EVP_MD_CTX_test_flags(const EVP_MD_CTX *ctx, int flags);
 int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl);
-int EVP_DigestInit_ext(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl, EVP_PKEY *pkey);
 int EVP_DigestUpdate(EVP_MD_CTX *ctx, const void *d, size_t cnt);
 int EVP_DigestFinal_ex(EVP_MD_CTX *ctx, unsigned char *md, unsigned int *s);
 int EVP_Digest(const void *data, size_t count,
@@ -759,9 +739,6 @@ const EVP_MD *EVP_ripemd160(void);
 # ifndef OPENSSL_NO_WHIRLPOOL
 const EVP_MD *EVP_whirlpool(void);
 # endif
-# ifndef OPENSSL_NO_SM3
-const EVP_MD *EVP_sm3(void);
-# endif
 const EVP_CIPHER *EVP_enc_null(void); /* does nothing :-) */
 # ifndef OPENSSL_NO_DES
 const EVP_CIPHER *EVP_des_ecb(void);
@@ -848,15 +825,6 @@ const EVP_CIPHER *EVP_rc5_32_12_16_cfb64(void);
 #  define EVP_rc5_32_12_16_cfb EVP_rc5_32_12_16_cfb64
 const EVP_CIPHER *EVP_rc5_32_12_16_ofb(void);
 # endif
-#ifndef OPENSSL_NO_SMS4
-const EVP_CIPHER *EVP_sms4(void);
-const EVP_CIPHER *EVP_sms4_cbc(void);
-#define EVP_sm4 EVP_sms4
-#define EVP_sm4_cbc EVP_sms4_cbc
-#endif
-#ifndef OPENSSL_NO_ZUC
-const EVP_CIPHER *EVP_zuc(void);
-#endif
 # ifndef OPENSSL_NO_AES
 const EVP_CIPHER *EVP_aes_128_ecb(void);
 const EVP_CIPHER *EVP_aes_128_cbc(void);
@@ -1007,10 +975,6 @@ struct dh_st *EVP_PKEY_get1_DH(EVP_PKEY *pkey);
 struct ec_key_st;
 int EVP_PKEY_set1_EC_KEY(EVP_PKEY *pkey, struct ec_key_st *key);
 struct ec_key_st *EVP_PKEY_get1_EC_KEY(EVP_PKEY *pkey);
-# ifndef OPENSSL_NO_SM2
-int EVP_PKEY_set1_SM2(EVP_PKEY *pkey, struct ec_key_st *key);
-struct ec_key_st *EVP_PKEY_get1_SM2(EVP_PKEY *pkey);
-# endif
 # endif
 
 EVP_PKEY *EVP_PKEY_new(void);

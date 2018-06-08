@@ -248,7 +248,7 @@ typedef struct DIST_POINT_NAME_st {
 # define CRL_REASON_AA_COMPROMISE                10
 
 struct DIST_POINT_st {
-    DIST_POINT_NAME *distpoint;    //ljk distpoint->name.fullname
+    DIST_POINT_NAME *distpoint;
     ASN1_BIT_STRING *reasons;
     GENERAL_NAMES *CRLissuer;
     int dp_reasons;

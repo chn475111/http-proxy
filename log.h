@@ -1,6 +1,6 @@
 /**
  * @author lijk@infosec.com.cn
- * @version 0.0.1
+ * @version 1.0.0.1
  * @date 2016-10-12 13:41:51
  */
 #ifndef __LOG_H__
@@ -27,7 +27,7 @@ extern enum log_level _log_level;
 
 #define _log_message(level, priority, format, ...)                                                                              \
 do{                                                                                                                             \
-    level > _log_level ? 0 : syslog(priority, #priority" [%s %s:%u] "format, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__);  \
+    level > _log_level ? 0 : syslog(priority, #priority" [%s - %s:%u] "format, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__);  \
 }while(0)
 
 #define log_crit(format, ...)       _log_message(LOG_LEVEL_CRIT, LOG_CRIT, format, ##__VA_ARGS__)

@@ -1,0 +1,63 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 2 (0x2)
+    Signature Algorithm: ecdsa-with-SHA256
+        Issuer: C=CN, ST=BeiJing, L=BeiJing, O=InfoSec, OU=R&D, CN=ca/emailAddress=lijk@infosec.com.cn
+        Validity
+            Not Before: Dec 18 06:10:25 2015 GMT
+            Not After : Dec 15 06:10:25 2025 GMT
+        Subject: C=CN, ST=BeiJing, L=BeiJing, O=InfoSec, OU=R&D, CN=server/emailAddress=lijk@infosec.com.cn
+        Subject Public Key Info:
+            Public Key Algorithm: id-ecPublicKey
+                Public-Key: (384 bit)
+                pub: 
+                    04:ac:10:d2:4e:da:8e:d1:a4:74:57:d5:db:bc:de:
+                    20:44:aa:8d:a9:ee:85:b2:87:84:ae:de:02:9b:80:
+                    fe:16:45:3b:69:25:77:f3:fc:ea:20:b6:ad:33:0d:
+                    a5:89:93:ee:cb:2f:02:57:24:0d:4f:16:af:f0:8c:
+                    b0:d8:09:db:6d:5a:b0:75:c3:d6:6c:50:5f:af:c7:
+                    88:8d:3f:e7:65:3b:ae:59:61:98:4f:d9:59:0d:a5:
+                    71:aa:dc:65:48:d7:63
+                ASN1 OID: secp384r1
+        X509v3 extensions:
+            X509v3 Basic Constraints: 
+                CA:FALSE
+            X509v3 Subject Key Identifier: 
+                F2:8B:E1:35:E5:B7:DC:37:96:13:3D:80:7B:E3:AF:66:FF:E6:93:28
+            X509v3 Authority Key Identifier: 
+                keyid:17:85:9C:FF:D3:B6:0F:0E:B6:15:4E:91:A8:4F:AB:32:97:0E:AF:7B
+                DirName:/C=CN/ST=BeiJing/L=BeiJing/O=InfoSec/OU=R&D/CN=ca/emailAddress=lijk@infosec.com.cn
+                serial:9E:43:CC:84:B9:18:B6:5B
+
+            X509v3 Extended Key Usage: 
+                TLS Web Server Authentication
+            X509v3 Key Usage: 
+                Digital Signature, Key Encipherment
+    Signature Algorithm: ecdsa-with-SHA256
+         30:66:02:31:00:da:6d:7f:60:0d:b9:45:cb:33:fd:56:83:18:
+         2a:46:56:7d:38:78:10:20:b2:68:75:79:3b:e6:a5:e5:89:2a:
+         71:56:d9:a5:be:f4:33:a6:63:34:48:d2:ab:b2:15:a0:b8:02:
+         31:00:c5:17:64:72:fb:43:99:75:44:d2:68:1e:67:35:3f:e4:
+         44:04:ca:14:38:61:38:7e:80:54:d6:a6:02:28:65:ff:a8:1b:
+         2b:e7:6a:c7:c6:a5:6c:23:be:a1:d8:88:4c:ea
+-----BEGIN CERTIFICATE-----
+MIIDQzCCAsigAwIBAgIBAjAKBggqhkjOPQQDAjCBgjELMAkGA1UEBhMCQ04xEDAO
+BgNVBAgTB0JlaUppbmcxEDAOBgNVBAcTB0JlaUppbmcxEDAOBgNVBAoTB0luZm9T
+ZWMxDDAKBgNVBAsUA1ImRDELMAkGA1UEAxMCY2ExIjAgBgkqhkiG9w0BCQEWE2xp
+amtAaW5mb3NlYy5jb20uY24wHhcNMTUxMjE4MDYxMDI1WhcNMjUxMjE1MDYxMDI1
+WjCBhjELMAkGA1UEBhMCQ04xEDAOBgNVBAgTB0JlaUppbmcxEDAOBgNVBAcTB0Jl
+aUppbmcxEDAOBgNVBAoTB0luZm9TZWMxDDAKBgNVBAsUA1ImRDEPMA0GA1UEAxMG
+c2VydmVyMSIwIAYJKoZIhvcNAQkBFhNsaWprQGluZm9zZWMuY29tLmNuMHYwEAYH
+KoZIzj0CAQYFK4EEACIDYgAErBDSTtqO0aR0V9XbvN4gRKqNqe6FsoeErt4Cm4D+
+FkU7aSV38/zqILatMw2liZPuyy8CVyQNTxav8Iyw2AnbbVqwdcPWbFBfr8eIjT/n
+ZTuuWWGYT9lZDaVxqtxlSNdjo4IBCjCCAQYwCQYDVR0TBAIwADAdBgNVHQ4EFgQU
+8ovhNeW33DeWEz2Ae+OvZv/mkygwgbcGA1UdIwSBrzCBrIAUF4Wc/9O2Dw62FU6R
+qE+rMpcOr3uhgYikgYUwgYIxCzAJBgNVBAYTAkNOMRAwDgYDVQQIEwdCZWlKaW5n
+MRAwDgYDVQQHEwdCZWlKaW5nMRAwDgYDVQQKEwdJbmZvU2VjMQwwCgYDVQQLFANS
+JkQxCzAJBgNVBAMTAmNhMSIwIAYJKoZIhvcNAQkBFhNsaWprQGluZm9zZWMuY29t
+LmNuggkAnkPMhLkYtlswEwYDVR0lBAwwCgYIKwYBBQUHAwEwCwYDVR0PBAQDAgWg
+MAoGCCqGSM49BAMCA2kAMGYCMQDabX9gDblFyzP9VoMYKkZWfTh4ECCyaHV5O+al
+5YkqcVbZpb70M6ZjNEjSq7IVoLgCMQDFF2Ry+0OZdUTSaB5nNT/kRATKFDhhOH6A
+VNamAihl/6gbK+dqx8albCO+odiITOo=
+-----END CERTIFICATE-----

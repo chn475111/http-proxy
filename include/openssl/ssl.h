@@ -170,29 +170,6 @@
 extern "C" {
 #endif
 
-#ifndef ECHO
-#define ECHO(fp, fmt, ...)                                                        \
-    do{                                                                           \
-        fprintf(fp, "[%s %s][%s:%u][%s]"fmt"\n",                                  \
-            __DATE__, __TIME__, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__); \
-    }while(0);
-#endif
-
-enum
-{
-	RSA_HANDSHAKE_TYPE,
-	SM2_HANDSHAKE_TYPE,
-	NUM_HANDSHAKE_TYPE
-};
-
-#if 1
-#define TLS_VERSION_MAJOR (unsigned)(TLS1_1_VERSION>>8)     //0x03
-#define TLS_VERSION_MINOR (unsigned)(TLS1_1_VERSION&0xff)   //0x02
-#else
-#define TLS_VERSION_MAJOR (unsigned)(TLS1_2_VERSION>>8)     //0x03
-#define TLS_VERSION_MINOR (unsigned)(TLS1_2_VERSION&0xff)   //0x03
-#endif
-
 /* SSLeay version number for ASN.1 encoding of the session information */
 /*-
  * Version 0 - initial version
@@ -525,7 +502,7 @@ struct ssl_session_st {
     unsigned int key_arg_length;
     unsigned char key_arg[SSL_MAX_KEY_ARG_LENGTH];
     int master_key_length;
-    unsigned char master_key[SSL_MAX_MASTER_KEY_LENGTH];    //ljk
+    unsigned char master_key[SSL_MAX_MASTER_KEY_LENGTH];
     /* session_id - valid? */
     unsigned int session_id_length;
     unsigned char session_id[SSL_MAX_SSL_SESSION_ID_LENGTH];
@@ -559,9 +536,6 @@ struct ssl_session_st {
      * ssl_asn1.c).
      */
     X509 *peer;
-#  ifndef OPENSSL_NO_GMSSL
-    X509 *peer_ext;
-#  endif
     /*
      * when app_verify_callback accepts a session where the peer's
      * certificate is not ok, we must remember the error for session reuse:
@@ -945,7 +919,7 @@ struct ssl_comp_st {
 #  endif
 };
 
-DECLARE_STACK_OF(SSL_COMP);
+DECLARE_STACK_OF(SSL_COMP)
 DECLARE_LHASH_OF(SSL_SESSION);
 
 struct ssl_ctx_st {
@@ -1058,7 +1032,7 @@ struct ssl_ctx_st {
     unsigned long mode;
     long max_cert_list;
 
-    struct cert_st /* CERT */ *cert;    //ljk
+    struct cert_st /* CERT */ *cert;
     int read_ahead;
 
     /* callback that allows applications to peek at protocol messages */
@@ -1206,9 +1180,6 @@ struct ssl_ctx_st {
     size_t tlsext_ellipticcurvelist_length;
     unsigned char *tlsext_ellipticcurvelist;
 #   endif                       /* OPENSSL_NO_EC */
-#  endif
-#  ifndef OPENSSL_NO_GMSSL
-    unsigned char handshakeType;    //ljk 0x00: rsa; 0x01: sm2; others: unknown
 #  endif
 };
 
@@ -1493,7 +1464,7 @@ struct ssl_st {
      * "init" member.
      */
     /* are we the server side? - mostly used by SSL_clear */
-    int server;    //ljk
+    int server;
     /*
      * Generate a new session or reuse an old one.
      * NB: For servers, the 'new' session may actually be a previously
@@ -1557,7 +1528,7 @@ struct ssl_st {
     /* session info */
     /* client cert? */
     /* This is used to hold the server certificate used */
-    struct cert_st /* CERT */ *cert;    //ljk
+    struct cert_st /* CERT */ *cert;
     /*
      * the session_id_context is used to ensure sessions are only reused in
      * the appropriate context
@@ -1714,9 +1685,6 @@ struct ssl_st {
     unsigned char *alpn_client_proto_list;
     unsigned alpn_client_proto_list_len;
 #  endif                        /* OPENSSL_NO_TLSEXT */
-#  ifndef OPENSSL_NO_GMSSL
-    unsigned char handshakeType;    //ljk 0x00: rsa; 0x01: sm2; others: unknown
-#  endif
 };
 
 # endif
@@ -1731,11 +1699,6 @@ struct ssl_st {
 # include <openssl/dtls1.h>     /* Datagram TLS */
 # include <openssl/ssl23.h>
 # include <openssl/srtp.h>      /* Support for the use_srtp extension */
-
-#ifndef OPENSSL_NO_GMSSL
-#include <openssl/gmssl.h>
-#endif
-
 
 #ifdef  __cplusplus
 extern "C" {
@@ -2164,8 +2127,6 @@ void BIO_ssl_shutdown(BIO *ssl_bio);
 
 # endif
 
-void SSL_CTX_set_handshake_type_ext(SSL_CTX *ctx, unsigned char handshakeType);
-
 int SSL_CTX_set_cipher_list(SSL_CTX *, const char *str);
 SSL_CTX *SSL_CTX_new(const SSL_METHOD *meth);
 void SSL_CTX_free(SSL_CTX *);
@@ -2215,11 +2176,9 @@ int SSL_use_RSAPrivateKey(SSL *ssl, RSA *rsa);
 # endif
 int SSL_use_RSAPrivateKey_ASN1(SSL *ssl, unsigned char *d, long len);
 int SSL_use_PrivateKey(SSL *ssl, EVP_PKEY *pkey);
-int SSL_use_PrivateKey_ext(SSL *ssl, EVP_PKEY *pkey, EVP_PKEY *pkey_ext);
 int SSL_use_PrivateKey_ASN1(int pk, SSL *ssl, const unsigned char *d,
                             long len);
 int SSL_use_certificate(SSL *ssl, X509 *x);
-int SSL_use_certificate_ext(SSL *ssl, X509 *x, X509 *x_ext);
 int SSL_use_certificate_ASN1(SSL *ssl, const unsigned char *d, int len);
 
 # ifndef OPENSSL_NO_TLSEXT
@@ -2235,14 +2194,10 @@ int SSL_CTX_use_serverinfo_file(SSL_CTX *ctx, const char *file);
 # ifndef OPENSSL_NO_STDIO
 int SSL_use_RSAPrivateKey_file(SSL *ssl, const char *file, int type);
 int SSL_use_PrivateKey_file(SSL *ssl, const char *file, int type);
-int SSL_use_PrivateKey_file_ext(SSL *ssl, const char *file, const char *file_ext, int type);
 int SSL_use_certificate_file(SSL *ssl, const char *file, int type);
-int SSL_use_certificate_file_ext(SSL *ssl, const char *file, const char *file_ext, int type);
 int SSL_CTX_use_RSAPrivateKey_file(SSL_CTX *ctx, const char *file, int type);
 int SSL_CTX_use_PrivateKey_file(SSL_CTX *ctx, const char *file, int type);
-int SSL_CTX_use_PrivateKey_file_ext(SSL_CTX *ctx, const char *file, const char *file_ext, int type);
 int SSL_CTX_use_certificate_file(SSL_CTX *ctx, const char *file, int type);
-int SSL_CTX_use_certificate_file_ext(SSL_CTX *ctx, const char *file, const char *file_ext, int type);
 /* PEM type */
 int SSL_CTX_use_certificate_chain_file(SSL_CTX *ctx, const char *file);
 STACK_OF(X509_NAME) *SSL_load_client_CA_file(const char *file);
@@ -2296,7 +2251,6 @@ SSL_SESSION *d2i_SSL_SESSION(SSL_SESSION **a, const unsigned char **pp,
 
 # ifdef HEADER_X509_H
 X509 *SSL_get_peer_certificate(const SSL *s);
-X509 *SSL_get_peer_certificate_ext(const SSL *s);
 # endif
 
 STACK_OF(X509) *SSL_get_peer_cert_chain(const SSL *s);
@@ -2319,11 +2273,9 @@ int SSL_CTX_use_RSAPrivateKey(SSL_CTX *ctx, RSA *rsa);
 int SSL_CTX_use_RSAPrivateKey_ASN1(SSL_CTX *ctx, const unsigned char *d,
                                    long len);
 int SSL_CTX_use_PrivateKey(SSL_CTX *ctx, EVP_PKEY *pkey);
-int SSL_CTX_use_PrivateKey_ext(SSL_CTX *ctx, EVP_PKEY *pkey, EVP_PKEY *pkey_ext);
 int SSL_CTX_use_PrivateKey_ASN1(int pk, SSL_CTX *ctx,
                                 const unsigned char *d, long len);
 int SSL_CTX_use_certificate(SSL_CTX *ctx, X509 *x);
-int SSL_CTX_use_certificate_ext(SSL_CTX *ctx, X509 *x, X509 *x_ext);
 int SSL_CTX_use_certificate_ASN1(SSL_CTX *ctx, int len,
                                  const unsigned char *d);
 
@@ -2331,14 +2283,10 @@ void SSL_CTX_set_default_passwd_cb(SSL_CTX *ctx, pem_password_cb *cb);
 void SSL_CTX_set_default_passwd_cb_userdata(SSL_CTX *ctx, void *u);
 
 int SSL_CTX_check_private_key(const SSL_CTX *ctx);
-int SSL_CTX_check_private_key_ext(const SSL_CTX *ctx);
 int SSL_check_private_key(const SSL *ctx);
-int SSL_check_private_key_ext(const SSL *ctx);
 
 int SSL_CTX_set_session_id_context(SSL_CTX *ctx, const unsigned char *sid_ctx,
                                    unsigned int sid_ctx_len);
-
-void SSL_set_handshake_type_ext(SSL *ssl, unsigned char handshakeType);
 
 SSL *SSL_new(SSL_CTX *ctx);
 int SSL_set_session_id_context(SSL *ssl, const unsigned char *sid_ctx,
@@ -2493,10 +2441,6 @@ int SSL_version(const SSL *ssl);
 int SSL_CTX_set_default_verify_paths(SSL_CTX *ctx);
 int SSL_CTX_load_verify_locations(SSL_CTX *ctx, const char *CAfile,
                                   const char *CApath);
-#if 1
-int SSL_CTX_use_ca_file_ext(SSL_CTX *ctx, const char *file, int type);
-int SSL_CTX_use_crl_file_ext(SSL_CTX *ctx, const char *file, int type);
-#endif
 # define SSL_get0_session SSL_get_session/* just peek at pointer */
 SSL_SESSION *SSL_get_session(const SSL *ssl);
 SSL_SESSION *SSL_get1_session(SSL *ssl); /* obtain a reference count */
@@ -2737,6 +2681,7 @@ void ERR_load_SSL_strings(void);
 # define SSL_F_SSL3_DO_CHANGE_CIPHER_SPEC                 292
 # define SSL_F_SSL3_ENC                                   134
 # define SSL_F_SSL3_GENERATE_KEY_BLOCK                    238
+# define SSL_F_SSL3_GENERATE_MASTER_SECRET                388
 # define SSL_F_SSL3_GET_CERTIFICATE_REQUEST               135
 # define SSL_F_SSL3_GET_CERT_STATUS                       289
 # define SSL_F_SSL3_GET_CERT_VERIFY                       136
@@ -2902,8 +2847,11 @@ void ERR_load_SSL_strings(void);
 # define SSL_R_BAD_DATA_RETURNED_BY_CALLBACK              106
 # define SSL_R_BAD_DECOMPRESSION                          107
 # define SSL_R_BAD_DH_G_LENGTH                            108
+# define SSL_R_BAD_DH_G_VALUE                             375
 # define SSL_R_BAD_DH_PUB_KEY_LENGTH                      109
+# define SSL_R_BAD_DH_PUB_KEY_VALUE                       393
 # define SSL_R_BAD_DH_P_LENGTH                            110
+# define SSL_R_BAD_DH_P_VALUE                             395
 # define SSL_R_BAD_DIGEST_LENGTH                          111
 # define SSL_R_BAD_DSA_SIGNATURE                          112
 # define SSL_R_BAD_ECC_CERT                               304

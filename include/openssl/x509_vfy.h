@@ -274,7 +274,7 @@ struct x509_store_ctx_st {      /* X509_STORE_CTX */
     /* index of last untrusted cert */
     int last_untrusted;
     /* chain of X509s - built up and trusted */
-    STACK_OF(X509) *chain;    //ljk
+    STACK_OF(X509) *chain;
     /* Valid policy tree */
     X509_POLICY_TREE *tree;
     /* Require explicit policy value */
@@ -524,8 +524,6 @@ int X509_LOOKUP_by_alias(X509_LOOKUP *ctx, int type, char *str, int len,
 int X509_LOOKUP_shutdown(X509_LOOKUP *ctx);
 
 # ifndef OPENSSL_NO_STDIO
-int X509_STORE_use_crl_file_ext(X509_STORE *ctx,
-                              const char *file, int type);
 int X509_STORE_load_locations(X509_STORE *ctx,
                               const char *file, const char *dir);
 int X509_STORE_set_default_paths(X509_STORE *ctx);

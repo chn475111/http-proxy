@@ -1,7 +1,7 @@
 #ifndef _LINUX_LIST_H
 #define _LINUX_LIST_H
 
-#include <linux/stddef.h>
+#include <stddef.h>
 
 /*
  * Simple doubly linked list implementation.
@@ -96,9 +96,9 @@ static inline void __list_del(struct list_head * prev, struct list_head * next)
  * that is also not mappable by user-space exploits:
  */
 #ifdef CONFIG_ILLEGAL_POINTER_VALUE
-# define POISON_POINTER_DELTA _AC(CONFIG_ILLEGAL_POINTER_VALUE, UL)
+#define POISON_POINTER_DELTA _AC(CONFIG_ILLEGAL_POINTER_VALUE, UL)
 #else
-# define POISON_POINTER_DELTA 0
+#define POISON_POINTER_DELTA 0
 #endif
 
 /*
@@ -230,6 +230,11 @@ static inline int list_is_singular(const struct list_head *head)
 	return !list_empty(head) && (head->next == head->prev);
 }
 
+static inline int list_is_alone(const struct list_head *entry)
+{
+	return (entry->next == NULL && entry->prev == NULL) || (entry->next == entry && entry->prev == entry) || (entry->next == LIST_POISON1 && entry->prev == LIST_POISON2);
+}
+
 static inline void __list_cut_position(struct list_head *list,
 		struct list_head *head, struct list_head *entry)
 {
@@ -341,7 +346,6 @@ static inline void list_splice_tail_init(struct list_head *list,
 	}
 }
 
-#ifndef container_of
 /**
  * container_of - cast a member of a structure out to the containing structure
  * @ptr:	the pointer to the member.
@@ -349,6 +353,7 @@ static inline void list_splice_tail_init(struct list_head *list,
  * @member:	the name of the member within the struct.
  *
  */
+#ifndef container_of
 #define container_of(ptr, type, member) ({			\
 	const typeof( ((type *)0)->member ) *__mptr = (ptr);	\
 	(type *)( (char *)__mptr - offsetof(type,member) );})
@@ -373,6 +378,41 @@ static inline void list_splice_tail_init(struct list_head *list,
  */
 #define list_first_entry(ptr, type, member) \
 	list_entry((ptr)->next, type, member)
+
+/*
+	prefetch(x) attempts to pre-emptively get the memory pointed to
+	by address "x" into the CPU L1 cache. 
+	prefetch(x) should not cause any kind of exception, prefetch(0) is
+	specifically ok.
+
+	prefetch() should be defined by the architecture, if not, the 
+	#define below provides a no-op define.	
+	
+	There are 3 prefetch() macros:
+	
+	prefetch(x)  	- prefetches the cacheline at "x" for read
+	prefetchw(x)	- prefetches the cacheline at "x" for write
+	spin_lock_prefetch(x) - prefetches the spinlock *x for taking
+	
+	there is also PREFETCH_STRIDE which is the architecure-prefered 
+	"lookahead" size for prefetching streamed operations.
+	
+*/
+#ifndef ARCH_HAS_PREFETCH
+#define prefetch(x) __builtin_prefetch(x)
+#endif
+
+#ifndef ARCH_HAS_PREFETCHW
+#define prefetchw(x) __builtin_prefetch(x,1)
+#endif
+
+#ifndef ARCH_HAS_SPINLOCK_PREFETCH
+#define spin_lock_prefetch(x) prefetchw(x)
+#endif
+
+#ifndef PREFETCH_STRIDE
+#define PREFETCH_STRIDE (4*L1_CACHE_BYTES)
+#endif
 
 /**
  * list_for_each	-	iterate over a list

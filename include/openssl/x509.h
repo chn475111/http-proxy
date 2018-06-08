@@ -285,7 +285,7 @@ struct x509_st {
     ASN1_OCTET_STRING *skid;
     AUTHORITY_KEYID *akid;
     X509_POLICY_CACHE *policy_cache;
-    STACK_OF(DIST_POINT) *crldp;    //ljk cdp
+    STACK_OF(DIST_POINT) *crldp;
     STACK_OF(GENERAL_NAME) *altname;
     NAME_CONSTRAINTS *nc;
 # ifndef OPENSSL_NO_RFC3779
@@ -293,7 +293,7 @@ struct x509_st {
     struct ASIdentifiers_st *rfc3779_asid;
 # endif
 # ifndef OPENSSL_NO_SHA
-    unsigned char sha1_hash[SHA_DIGEST_LENGTH];    //openssl或windows添加
+    unsigned char sha1_hash[SHA_DIGEST_LENGTH];
 # endif
     X509_CERT_AUX *aux;
 } /* X509 */ ;

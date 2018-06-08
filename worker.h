@@ -1,23 +1,28 @@
 #ifndef __WORKER_H__
 #define __WORKER_H__
 
-#include "list.h"
-#include "ini_handler.h"
 #include "connection.h"
+#include "cfg_handler.h"
 
 typedef struct worker_s
 {
-    SSL_CTX *ctx[MAX_COUNT_NUM];            //SSL_CTX句柄数组
+    int slot;                               //工作进程索引
+    pid_t pid;                              //工作进程PID
+    int sockfd[2];                          //父进程: sockfd[0]; 子进程: sockfd[1]
+    SSL_CTX *ctx[MAX_SERVER_NUM];           //CTX句柄数组
     connection_t conn[MAX_CONN_NUM];        //Connection连接数组
-    timer_root_t timer;                     //Timer根节点
-    struct event ev_timer;                  //计时器事件
-    struct master_s *mast;                  //Master句柄
+    connection_t *hhash;                    //Connection哈希句柄
+    struct list_head hlist;                 //Connection链表头节点
+    struct event timer;                     //Timer计时器事件
     struct event_base *base;                //Base事件句柄
-    struct list_head list;                  //List头节点 (用来向客户端群发通知消息)
+    struct master_s *mast;                  //Master句柄
 }worker_t;
 
-SSL_CTX *ssl_ctx_init(char *ca, char *crl, char *cert, char *key, \
-    char *enccert, char *enckey, char *sigcert, char *sigkey, char *passwd, char *cipher, int verify);
+void on_stop(int fd, short events, void *data);
+
+void on_timer(int fd, short events, void *data);
+
+SSL_CTX *ssl_ctx_init(char *ca, char *cert, char *key, char *passwd, char *cipher, int verify);
 
 void ssl_ctx_exit(SSL_CTX *ctx);
 

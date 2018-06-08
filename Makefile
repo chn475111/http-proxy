@@ -1,25 +1,22 @@
 #created by lijk<lijk@infosec.com.cn>
-CC := cc
+CC := gcc
 CFLAGS := -g -O0 -Wall -fPIC
-CFLAGS += -D_HTTP
-CFLAGS += -D_DEBUG
-CFLAGS += -DINI_HANDLER_LINENO
+CFLAGS += -D__DEBUG__
 CFLAGS += -I./
 CFLAGS += -I./include/
 LDFLAGS := -L./
-LDFLAGS += -L./lib/ -lssl -lcrypto -levent
-LIBS := -ldl -lrt
+LDFLAGS += -L./lib/ -lconfig -levent -lssl -lcrypto
+LIBS := -lrt -ldl
 
 .PHONY : default all clean
 
-SRCS += rbtree.c timer.c timer_handler.c ini.c ini_handler.c http_parser.c http_handler.c
-SRCS += utils.c file_utils.c cert_utils.c ssl_utils.c tcp_utils.c
-SRCS += log.c options.c signals.c base64.c passwd.c crypto_lock.c
-SRCS += event_handler.c proc.c worker.c master.c main.c
+SRCS += log.c utils.c file_utils.c cert_utils.c fd_utils.c tcp_utils.c membuf.c
+SRCS += hashtable.c http_parser.c cfg_handler.c http_handler.c event_handler.c
+SRCS += options.c signals.c setproctitle.c process.c worker.c master.c main.c
 
 OBJS = $(SRCS:.c=.o)
 
-TARGET = http-proxy
+TARGET = proxy
 
 default : all
 

@@ -106,7 +106,7 @@ typedef enum {
         /** the point is encoded as z||x, where the octet z specifies
          *  which solution of the quadratic equation y is  */
     POINT_CONVERSION_COMPRESSED = 2,
-        /** the point is encoded as z||x||y, where z is the octet 0x02  */
+        /** the point is encoded as z||x||y, where z is the octet 0x04  */
     POINT_CONVERSION_UNCOMPRESSED = 4,
         /** the point is encoded as z||x||y, where the octet z specifies
          *  which solution of the quadratic equation y is  */
@@ -1222,14 +1222,6 @@ void ERR_load_EC_strings(void);
 # define EC_F_PKEY_EC_KEYGEN                              199
 # define EC_F_PKEY_EC_PARAMGEN                            219
 # define EC_F_PKEY_EC_SIGN                                218
-
-#ifndef OPENSSL_NO_GMSSL
-#define EC_F_PKEY_EC_ENCRYPT				300
-#define EC_F_PKEY_EC_DECRYPT				301
-#define EC_F_PKEY_SM2_SIGN					302
-#define EC_F_PKEY_SM2_ENCRYPT				303
-#define EC_F_PKEY_SM2_DECRYPT				304
-#endif
 
 /* Reason codes. */
 # define EC_R_ASN1_ERROR                                  115

@@ -93,7 +93,7 @@ typedef struct pkcs7_signer_info_st {
     PKCS7_ISSUER_AND_SERIAL *issuer_and_serial;
     X509_ALGOR *digest_alg;
     STACK_OF(X509_ATTRIBUTE) *auth_attr; /* [ 0 ] */
-    X509_ALGOR *digest_enc_alg;    //ljk
+    X509_ALGOR *digest_enc_alg;
     ASN1_OCTET_STRING *enc_digest;
     STACK_OF(X509_ATTRIBUTE) *unauth_attr; /* [ 1 ] */
     /* The private key to sign with */
@@ -209,12 +209,12 @@ DECLARE_PKCS12_STACK_OF(PKCS7)
 # define PKCS7_get_signed_attributes(si) ((si)->auth_attr)
 # define PKCS7_get_attributes(si)        ((si)->unauth_attr)
 
-# define PKCS7_type_is_signed(a) (OBJ_obj2nid((a)->type) == NID_pkcs7_signed || OBJ_obj2nid((a)->type) == NID_pkcs7_signed_sm2)
+# define PKCS7_type_is_signed(a) (OBJ_obj2nid((a)->type) == NID_pkcs7_signed)
 # define PKCS7_type_is_encrypted(a) (OBJ_obj2nid((a)->type) == NID_pkcs7_encrypted)
-# define PKCS7_type_is_enveloped(a) (OBJ_obj2nid((a)->type) == NID_pkcs7_enveloped || OBJ_obj2nid((a)->type) == NID_pkcs7_enveloped_sm2)
+# define PKCS7_type_is_enveloped(a) (OBJ_obj2nid((a)->type) == NID_pkcs7_enveloped)
 # define PKCS7_type_is_signedAndEnveloped(a) \
                 (OBJ_obj2nid((a)->type) == NID_pkcs7_signedAndEnveloped)
-# define PKCS7_type_is_data(a)   (OBJ_obj2nid((a)->type) == NID_pkcs7_data || OBJ_obj2nid((a)->type) == NID_pkcs7_data_sm2)
+# define PKCS7_type_is_data(a)   (OBJ_obj2nid((a)->type) == NID_pkcs7_data)
 # define PKCS7_type_is_digest(a)   (OBJ_obj2nid((a)->type) == NID_pkcs7_digest)
 
 # define PKCS7_set_detached(p,v) \
@@ -305,7 +305,6 @@ int PKCS7_signatureVerify(BIO *bio, PKCS7 *p7, PKCS7_SIGNER_INFO *si,
 
 BIO *PKCS7_dataInit(PKCS7 *p7, BIO *bio);
 int PKCS7_dataFinal(PKCS7 *p7, BIO *bio);
-int PKCS7_dataFinal_ext(PKCS7 *p7, BIO *bio, BIO *data);
 BIO *PKCS7_dataDecode(PKCS7 *p7, EVP_PKEY *pkey, BIO *in_bio, X509 *pcert);
 
 PKCS7_SIGNER_INFO *PKCS7_add_signature(PKCS7 *p7, X509 *x509,

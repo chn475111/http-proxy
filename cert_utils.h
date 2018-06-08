@@ -1,6 +1,7 @@
 #ifndef __CERT_UTILS_H__
 #define __CERT_UTILS_H__
 
+#include <openssl/err.h>
 #include <openssl/ssl.h>
 
 int get_format_from_file(char *filename);

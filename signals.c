@@ -8,6 +8,6 @@ void signals_register()
     signal(SIGHUP, SIG_IGN);
     signal(SIGPIPE, SIG_IGN);
     signal(SIGALRM, SIG_IGN);
-    signal(SIGCHLD, SIG_IGN);
+    signal(SIGTERM, SIG_IGN);
     signal(SIGSYS, SIG_IGN);
 }

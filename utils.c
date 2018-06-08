@@ -1,8 +1,8 @@
 #define _GNU_SOURCE
 #include <sched.h>
+#include <unistd.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-#include <unistd.h>
 #include "utils.h"
 
 int get_proc_num()

@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include "log.h"
 
 enum log_level _log_level = LOG_LEVEL_INFO;

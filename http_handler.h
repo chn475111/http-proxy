@@ -3,59 +3,27 @@
 
 #include "http_parser.h"
 
-#define MAX_FIELD_SIZE 256
-#define MAX_VALUE_SIZE 4096
-#define MAX_HEADER_COUNT 256
-
-typedef struct field_s
-{
-    int len;
-    char val[MAX_FIELD_SIZE];
-}field_t;
-
-typedef struct value_s
-{
-    int len;
-    char val[MAX_VALUE_SIZE];
-}value_t;
+#define MAX_BUFFER_SIZE 4096
 
 typedef struct http_header_s
 {
-    field_t field;
-    value_t value;
+    int length;
+    char buffer[MAX_BUFFER_SIZE];
 }http_header_t;
 
-typedef struct http_headers_s
+typedef struct http_head_s
 {
-    unsigned int type;                  //HTTP请求/响应类型
-    union{
-        struct
-        {
-            unsigned int method;        //HTTP请求方法
-            value_t url;                //HTTP请求路径
-        }request;
-        struct
-        {
-            unsigned int code;          //HTTP响应状态码
-            value_t status;             //HTTP响应状态
-        }response;
-    }r;
-    unsigned short major;               //HTTP主版本号
-    unsigned short minor;               //HTTP次版本号
-    int count;
-    http_header_t header[MAX_HEADER_COUNT];
-}http_headers_t;
+    http_header_t url;
+    http_header_t status;
+}http_head_t;
 
 typedef struct http_body_s
 {
-    unsigned long long content_length;
-    unsigned long long len;
-    unsigned char *val;
 }http_body_t;
 
 typedef struct http_data_s
 {
-    http_headers_t headers;
+    http_head_t head;
     http_body_t body;
 }http_data_t;
 
@@ -65,6 +33,12 @@ typedef struct http_s
     http_parser parser;                 //HTTP解析句柄
     http_data_t data;                   //HTTP数据内容
 }http_t;
+
+http_t *http_new(void *data);
+
+int http_exec(http_t *h, const char *buf, int len);
+
+void http_delete(http_t *h);
 
 int on_message_begin(http_parser *parser);
 

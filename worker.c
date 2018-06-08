@@ -1,98 +1,83 @@
+#include <errno.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include "log.h"
 #include "utils.h"
+#include "signals.h"
 #include "file_utils.h"
 #include "cert_utils.h"
-#include "crypto_lock.h"
+#include "fd_utils.h"
+#include "tcp_utils.h"
+#include "setproctitle.h"
 #include "event_handler.h"
-#include "log.h"
-#include "base64.h"
-#include "passwd.h"
-#include "signals.h"
 #include "worker.h"
 #include "master.h"
+
+void on_stop(int fd, short events, void *data)
+{
+    struct event_base *base = (struct event_base*)data;
+    struct timeval tv = 
+    {
+        .tv_sec = 1,
+        .tv_usec = 0
+    };
+    event_base_loopexit(base, &tv);
+
+    log_info("proxy was on stop");
+}
+
+void on_timer(int fd, short events, void *data)
+{
+    worker_t *work = (worker_t*)data;
+    struct timeval tv = 
+    {
+        .tv_sec = 30,
+        .tv_usec = 0
+    };
+    evtimer_add(&work->timer, &tv);
+
+    log_debug("proxy was on timer");
+}
 
 static int verify_callback(int ok, X509_STORE_CTX *ctx)
 {
     int error = X509_STORE_CTX_get_error(ctx);
     int depth = X509_STORE_CTX_get_error_depth(ctx);
-    switch (error)
+    const char *error_string = X509_verify_cert_error_string(error);
+    switch(error)
     {
         case X509_V_OK:
             break;
-        case X509_V_ERR_UNABLE_TO_GET_CRL:
-            log_debug("depth = %d, error = %d, %s", depth, error, X509_verify_cert_error_string(error));
-            X509_STORE_CTX_set_error(ctx, X509_V_OK);
-            ok = 1;
-            break;
         default:
-            log_err("depth = %d, error = %d, %s", depth, error, X509_verify_cert_error_string(error));
+            log_err("depth = %d, error = %d - %s", depth, error, error_string);
             break;
     }
     return ok;
 }
 
-SSL_CTX *ssl_ctx_init(char *ca, char *crl, char *cert, char *key, \
-    char *enccert, char *enckey, char *sigcert, char *sigkey, char *passwd, char *cipher, int verify)
+SSL_CTX *ssl_ctx_init(char *ca, char *cert, char *key, char *passwd, char *cipher, int verify)
 {
     SSL_CTX *ctx = NULL;
-    SSL_METHOD *meth = NULL;
-
-    int nid = 0;
-    EC_KEY *ecdh = NULL;
-
     int mode = SSL_VERIFY_NONE;
 
-    meth = (SSL_METHOD*)SSLv23_server_method();
-    ctx = SSL_CTX_new(meth);
+    ctx = SSL_CTX_new(SSLv23_server_method());
     if(!ctx)
     {
         log_err("SSL_CTX_new failed");
         return NULL;
     }
-
     if(cipher) SSL_CTX_set_cipher_list(ctx, cipher);
+
     SSL_CTX_set_options(ctx, SSL_OP_SINGLE_DH_USE);
     SSL_CTX_set_options(ctx, SSL_OP_SINGLE_ECDH_USE);
     SSL_CTX_set_options(ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
-    SSL_CTX_set_options(ctx, SSL_OP_NO_TICKET);
-//  SSL_CTX_set_timeout(ctx, 7200L);
 
-    nid = OBJ_sn2nid((const char *)"secp384r1");
-    if(nid == 0)
-    {
-        log_err("OBJ_sn2nid failed");
-        goto ErrP;
-    }
-    ecdh = EC_KEY_new_by_curve_name(nid);
-    if(ecdh == NULL)
-    {
-        log_err("EC_KEY_new_by_curve_name failed");
-        goto ErrP;
-    }
-    SSL_CTX_set_tmp_ecdh(ctx, ecdh);
-    EC_KEY_free(ecdh);
+    SSL_CTX_set_ecdh_auto(ctx, 1);
+    SSL_CTX_set1_curves_list(ctx, "prime256v1:secp384r1");
 
-#if 0
-    SSL_CTX_set_verify_depth()
-    X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY
-    "level 0:peer certificate", "level 1: CA certificate", "level 2: higher level CA certificate"
-#endif
-
-#if 0
-    SSL_CTX_load_verify_locations()
-    -----BEGIN CERTIFICATE-----
-    ... (CA certificate in base64 encoding) ...
-    -----END CERTIFICATE-----
-    -----BEGIN CERTIFICATE-----
-    ... (CA certificate in base64 encoding) ...
-    -----END CERTIFICATE-----
-#endif
-
-//  SSL_CTX_set_verify_depth(ctx, 9);
     switch(verify)
     {
-        case 0:         //单向认证(默认)
+        case 0:         //单向认证
             mode = SSL_VERIFY_NONE;
             break;
         case 1:         //双向认证
@@ -114,31 +99,7 @@ SSL_CTX *ssl_ctx_init(char *ca, char *crl, char *cert, char *key, \
         SSL_CTX_set_client_CA_list(ctx, SSL_load_client_CA_file(ca));
     }
 
-    if(is_file_exist(crl))
-    {
-        if(SSL_CTX_use_crl_file_ext(ctx, crl, get_format_from_file(crl)) != 1)
-        {
-            log_err("SSL_CTX_use_crl_file_ext failed");
-            goto ErrP;
-        }
-    }
-
-#if 1
-    int length = 65536;
-    unsigned char password[65536] = {0};
-    length = passwd_decrypt((unsigned char*)passwd, passwd ? strlen(passwd) : 0, password, length);
-    if(length <= 0)
-    {
-        log_warning("passwd decrypt failed - %s", passwd);
-        SSL_CTX_set_default_passwd_cb_userdata(ctx, (void*)passwd);
-    }
-    else
-    {
-        log_debug("passwd decrypt succeed - %d: %s", length, password);
-        SSL_CTX_set_default_passwd_cb_userdata(ctx, (void*)password);
-    }
-#endif
-
+    SSL_CTX_set_default_passwd_cb_userdata(ctx, (void*)passwd);
     if(is_file_exist(cert) || is_file_exist(key))
     {
         if(SSL_CTX_use_certificate_file(ctx, cert, get_format_from_file(cert)) != 1)
@@ -158,25 +119,6 @@ SSL_CTX *ssl_ctx_init(char *ca, char *crl, char *cert, char *key, \
         }
     }
 
-    if(is_file_exist(enccert) || is_file_exist(sigcert) || is_file_exist(enckey) || is_file_exist(sigkey))
-    {
-        if(SSL_CTX_use_certificate_file_ext(ctx, enccert, sigcert, get_format_from_file(enccert)) != 1)
-        {
-            log_err("SSL_CTX_use_certificate_file_ext failed");
-            goto ErrP;
-        }
-        if(SSL_CTX_use_PrivateKey_file_ext(ctx, enckey, sigkey, get_format_from_file(enckey)) != 1)
-        {
-            log_err("SSL_CTX_use_PrivateKey_file_ext failed");
-            goto ErrP;
-        }
-        if(SSL_CTX_check_private_key_ext(ctx) != 1)
-        {
-            log_err("SSL_CTX_check_private_key_ext failed");
-            goto ErrP;
-        }
-    }
-
     return ctx;
 ErrP:
     ERR_print_errors_fp(stderr);
@@ -192,151 +134,132 @@ void ssl_ctx_exit(SSL_CTX *ctx)
 void service_worker_process(void *data)
 {
     int ret = 0;
-    int loop = 0;
-    config_t *conf = NULL;
-    master_t *mast = (master_t*)data;
+    int i = 0;
+    char *env = NULL;
+    struct event stop;
 
-    struct event ev_sigint;
-    struct event ev_sigterm;
+    if(data == NULL)
+    {
+        log_crit("worker internal error - %p", data);
+        exit(EXIT_FAILURE);
+    }
+
+    worker_t *work = (worker_t*)data;
+    master_t *mast = work->mast;
+    proxy_t *proxy = &mast->proxy;
 
     struct timeval tv = 
     {
-        .tv_sec = 1,
+        .tv_sec = 30,
         .tv_usec = 0
     };
 
-    if(mast == NULL)
-        exit(EXIT_FAILURE);
-    conf = &mast->conf;
-
-    SSL_library_init();
-    SSL_load_error_strings();
-
-    OpenSSL_add_all_algorithms();
+    work->pid = getpid();
+    fd_close(work->sockfd[0]);
 
 #if 1
     ret = set_proc_priority(0);
-    if(ret == -1)
+    if(ret < 0)
     {
         log_err("set priority failed - %d: %s", errno, strerror(errno));
         exit(EXIT_FAILURE);
     }
 
     ret = set_proc_affinity(getpid()%get_proc_num());
-    if(ret == -1)
+    if(ret < 0)
     {
         log_err("set affinity failed - %d: %s", errno, strerror(errno));
         exit(EXIT_FAILURE);
     }
 #endif
 
-    worker_t *work = (worker_t*)malloc(sizeof(worker_t));
-    if(work == NULL)
-    {
-        log_err("malloc memory from OS failed - %d: %s", errno, strerror(errno));
-        goto ErrP;
-    }
-    memset(work, 0, sizeof(worker_t));
+    SSL_library_init();
+    SSL_load_error_strings();
 
-    work->mast = mast;
+    OpenSSL_add_all_algorithms();
+
+    for(i = 0; i < proxy->serverNumber; i++)
+    {
+        cred_t *cred = proxy->serverArray[i].cred;
+        work->ctx[i] = ssl_ctx_init(cred->ca, cred->cert, cred->key, cred->passwd, cred->cipher, cred->verify);
+        if(work->ctx[i] == NULL)
+        {
+            log_err("ssl ctx init \"%s\" failed - %d: %s", cred->name, errno, strerror(errno));
+            goto ErrP;
+        }
+    }
+
     work->base = event_base_new();
     if(work->base == NULL)
     {
         log_err("event_base_new failed - %d: %s", errno, strerror(errno));
         goto ErrP;
     }
+    env = os_setproctitle(os_argc, os_argv, "proxy: worker process");
 
-    //结束信号
-    evsignal_assign(&ev_sigint, work->base, SIGINT, on_signal, (void*)&ev_sigint);
-    evsignal_add(&ev_sigint, NULL);
-    evsignal_assign(&ev_sigterm, work->base, SIGTERM, on_signal, (void*)&ev_sigterm);
-    evsignal_add(&ev_sigterm, NULL);
+    evsignal_assign(&stop, work->base, SIGINT, on_stop, (void*)work->base);
+    evsignal_add(&stop, NULL);
 
-    //计时器
-    evtimer_assign(&work->ev_timer, work->base, on_timer, (void*)work);
-    evtimer_add(&work->ev_timer, &tv);
+    evtimer_assign(&work->timer, work->base, on_timer, (void*)work);
+    evtimer_add(&work->timer, &tv);
 
-    for(loop = 0; loop < conf->count; loop ++)
+    for(i = 0; i < proxy->serverNumber; i++)
     {
-        if(conf->ctrl[loop].isEnable)
+        int fd = mast->fd[i];
+        if(fd > 0)
         {
-            //SSL_CTX
-            work->ctx[loop] = ssl_ctx_init( is_file_exist(conf->ssl[loop].ca) ? conf->ssl[loop].ca : conf->ca,              \
-                                            is_file_exist(conf->ssl[loop].crl) ? conf->ssl[loop].crl : conf->crl,           \
-                                            conf->ssl[loop].cert, conf->ssl[loop].key,                                      \
-                                            conf->ssl[loop].enccert, conf->ssl[loop].enckey,                                \
-                                            conf->ssl[loop].sigcert, conf->ssl[loop].sigkey,                                \
-                                            conf->ssl[loop].passwd, conf->ssl[loop].cipher, conf->ssl[loop].isVerify );
-            if(work->ctx[loop] == NULL)
-            {
-                log_err("ssl ctx init server%d failed - %d: %s", loop, errno, strerror(errno) );
-                goto ErrP;
-            }
+            work->conn[fd].slot = i;
+            work->conn[fd].fd = fd;
 
-            //FD
-            work->conn[mast->fd[loop]].slot = loop;
-            work->conn[mast->fd[loop]].fd = mast->fd[loop];
-            work->conn[mast->fd[loop]].ssl = NULL;
-            work->conn[mast->fd[loop]].ip = NULL;
-            work->conn[mast->fd[loop]].port = 0;
-            work->conn[mast->fd[loop]].http = NULL;
-            work->conn[mast->fd[loop]].peer = NULL;
-
-            event_assign(&work->conn[mast->fd[loop]].event, work->base, mast->fd[loop], EV_READ|EV_PERSIST, tcp_accept_from_frontend, (void*)work);
-            event_add(&work->conn[mast->fd[loop]].event, NULL);
+            event_assign(&work->conn[fd].event, work->base, fd, EV_READ|EV_PERSIST, tcp_accept_from_frontend, (void*)work);
+            event_add(&work->conn[fd].event, NULL);
         }
     }
 
-    pthread_setup();
-    timer_init(&work->timer);
-    INIT_LIST_HEAD(&work->list);
-
     signals_register();
-    event_base_dispatch(work->base);        //main loop
+    event_base_dispatch(work->base);
 
-    evsignal_del(&ev_sigint);
-    evsignal_del(&ev_sigterm);
+    evsignal_del(&stop);
     if(work)
     {
-        for(loop = 0; loop < MAX_CONN_NUM; loop ++)
-            event_conn_free(work, &work->conn[loop]);
-        for(loop = 0; loop < MAX_COUNT_NUM; loop ++)
-            ssl_ctx_exit(work->ctx[loop]);
-        INIT_LIST_HEAD(&work->list);
-        timer_exit(&work->timer);
-        evtimer_del(&work->ev_timer);
-        event_base_free(work->base);
-        free(work);
+        evtimer_del(&work->timer);
+        fd_close(work->sockfd[1]);
+        for(i = 0; i < MAX_CONN_NUM; i++) tcp_conn_free(&work->conn[i]);
+        if(work->base) event_base_free(work->base);
+    }
+    if(proxy)
+    {
+        for(i = 0; i < proxy->serverNumber; i++) ssl_ctx_exit(work->ctx[i]);
+        cfg_exit(proxy);
     }
     if(mast)
     {
-        config_free((void*)&mast->conf);
+
+        if(mast->workArray) free(mast->workArray);
         free(mast);
     }
-    pthread_cleanup();
+    if(env) free(env);
     log_close();
     exit(EXIT_SUCCESS);
 ErrP:
-    evsignal_del(&ev_sigint);
-    evsignal_del(&ev_sigterm);
     if(work)
     {
-        for(loop = 0; loop < MAX_CONN_NUM; loop ++)
-            event_conn_free(work, &work->conn[loop]);
-        for(loop = 0; loop < MAX_COUNT_NUM; loop ++)
-            ssl_ctx_exit(work->ctx[loop]);
-        INIT_LIST_HEAD(&work->list);
-        timer_exit(&work->timer);
-        evtimer_del(&work->ev_timer);
-        event_base_free(work->base);
-        free(work);
+        fd_close(work->sockfd[1]);
+        for(i = 0; i < MAX_CONN_NUM; i++) tcp_conn_free(&work->conn[i]);
+        if(work->base) event_base_free(work->base);
+    }
+    if(proxy)
+    {
+        for(i = 0; i < proxy->serverNumber; i++) ssl_ctx_exit(work->ctx[i]);
+        cfg_exit(proxy);
     }
     if(mast)
     {
-        config_free((void*)&mast->conf);
+        if(mast->workArray) free(mast->workArray);
         free(mast);
     }
-    pthread_cleanup();
+    if(env) free(env);
     log_close();
     exit(EXIT_FAILURE);
+    return;
 }
