@@ -277,6 +277,7 @@ void ssl_read_from_frontend(int fd, short events, void *data)
         goto ErrP;
     }
 
+do{
     membuf->mlen = 0;
     membuf->mpos = membuf->buffer;
     membuf->mlen = SSL_read(work->conn[fd].ssl, membuf->buffer, membuf->length);
@@ -288,7 +289,7 @@ void ssl_read_from_frontend(int fd, short events, void *data)
             log_debug("3, \"%s\" ssl read \"RST\" from frontend \"%s:%hu\" succeed - %s", serverName, work->conn[fd].ip, work->conn[fd].port, error_string[error_code]);
             goto ErrP;
         }
-        if(errno != ECONNRESET) log_err("3, \"%s\" ssl read data from frontend \"%s:%hu\" failed - %s", serverName, work->conn[fd].ip, work->conn[fd].port, error_string[error_code]);
+        log_err("3, \"%s\" ssl read data from frontend \"%s:%hu\" failed - %s", serverName, work->conn[fd].ip, work->conn[fd].port, error_string[error_code]);
         goto ErrP;
     }
     log_debug("3, \"%s\" ssl read data from frontend \"%s:%hu\" succeed - %d: %s", serverName, work->conn[fd].ip, work->conn[fd].port, membuf->mlen, membuf->mpos);
@@ -315,6 +316,7 @@ void ssl_read_from_frontend(int fd, short events, void *data)
         goto ErrP;
     }
     log_debug("4, \"%s\" tcp send data to backend \"%s:%hu\" succeed - %d: %s", serverName, peer->ip, peer->port, membuf->mlen, membuf->mpos);
+}while(SSL_pending(work->conn[fd].ssl) > 0);
 
     event_assign(&work->conn[fd].event, work->base, fd, EV_TIMEOUT|EV_READ, ssl_read_from_frontend, (void*)work);
     event_add(&work->conn[fd].event, &tv);
@@ -345,6 +347,7 @@ void tcp_send_to_backend(int fd, short events, void *data)
     membuf_t *membuf = peer->membuf;
 
     int slot = work->conn[fd].slot;
+    char *proxyType = proxy->serverArray[slot].proxyType;
     char *serverName = proxy->serverArray[slot].serverName;
 
     struct timeval tv = 
@@ -366,6 +369,38 @@ void tcp_send_to_backend(int fd, short events, void *data)
         goto ErrP;
     }
     log_debug("4, \"%s\" tcp send data to backend \"%s:%hu\" succeed - %d: %s", serverName, work->conn[fd].ip, work->conn[fd].port, membuf->mlen, membuf->mpos);
+
+while(SSL_pending(peer->ssl) > 0)
+{
+    membuf->mlen = 0;
+    membuf->mpos = membuf->buffer;
+    membuf->mlen = SSL_read(peer->ssl, membuf->buffer, membuf->length);
+    if(membuf->mlen <= 0)
+    {
+        error_code = SSL_get_error(peer->ssl, membuf->mlen);
+        log_err("3, \"%s\" ssl read data from frontend \"%s:%hu\" failed - %s", serverName, peer->ip, peer->port, error_string[error_code]);
+        goto ErrP;
+    }
+    log_debug("3, \"%s\" ssl read data from frontend \"%s:%hu\" succeed - %d: %s", serverName, peer->ip, peer->port, membuf->mlen, membuf->mpos);
+
+    if(strcasecmp(proxyType, "http") == 0)
+    {
+        int ret = http_exec(peer->http, (const char*)membuf->mpos, membuf->mlen);
+        if(ret < 0)
+        {
+            log_err("\"%s\" http parser failed - \"%s:%hu\"", serverName, peer->ip, peer->port);
+            goto ErrP;
+        }
+    }
+
+    membuf->mlen = tcp_send(work->conn[fd].fd, membuf->mpos, membuf->mlen);
+    if(membuf->mlen < 0)
+    {
+        log_err("4, \"%s\" tcp send data to backend \"%s:%hu\" failed - %d: %s", serverName, work->conn[fd].ip, work->conn[fd].port, errno, strerror(errno));
+        goto ErrP;
+    }
+    log_debug("4, \"%s\" tcp send data to backend \"%s:%hu\" succeed - %d: %s", serverName, work->conn[fd].ip, work->conn[fd].port, membuf->mlen, membuf->mpos);
+}
 
     event_assign(&peer->event, work->base, peer->fd, EV_TIMEOUT|EV_READ, ssl_read_from_frontend, (void*)work);
     event_add(&peer->event, &tv);
