@@ -409,6 +409,7 @@ while(SSL_pending(peer->ssl) > 0)
     event_add(&work->conn[fd].event, &tv);
     return;
 ErrP:
+    ERR_print_errors_fp(stderr);
     tcp_conn_free(&work->conn[fd]);
     tcp_conn_free(peer);
     return;

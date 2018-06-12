@@ -6,12 +6,12 @@ CFLAGS += -I./
 CFLAGS += -I./include/
 LDFLAGS := -L./
 LDFLAGS += -L./lib/ -lconfig -levent -lssl -lcrypto
-LIBS := -lrt -ldl
+LIBS := -lrt -ldl -lpthread
 
 .PHONY : default all clean
 
-SRCS += log.c utils.c file_utils.c cert_utils.c fd_utils.c tcp_utils.c membuf.c
-SRCS += hashtable.c http_parser.c cfg_handler.c http_handler.c event_handler.c
+SRCS += log.c utils.c file_utils.c cert_utils.c fd_utils.c tcp_utils.c crypto_lock.c
+SRCS += membuf.c hashtable.c http_parser.c http_handler.c cfg_handler.c event_handler.c
 SRCS += options.c signals.c setproctitle.c process.c worker.c master.c main.c
 
 OBJS = $(SRCS:.c=.o)

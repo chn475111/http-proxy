@@ -8,6 +8,7 @@
 #include "cert_utils.h"
 #include "fd_utils.h"
 #include "tcp_utils.h"
+#include "crypto_lock.h"
 #include "setproctitle.h"
 #include "event_handler.h"
 #include "worker.h"
@@ -175,9 +176,9 @@ void service_worker_process(void *data)
 
     SSL_library_init();
     SSL_load_error_strings();
-
     OpenSSL_add_all_algorithms();
 
+    pthread_setup();
     for(i = 0; i < proxy->serverNumber; i++)
     {
         cred_t *cred = proxy->serverArray[i].cred;
@@ -239,6 +240,7 @@ void service_worker_process(void *data)
         free(mast);
     }
     if(env) free(env);
+    pthread_cleanup();
     log_close();
     exit(EXIT_SUCCESS);
 ErrP:
@@ -259,6 +261,7 @@ ErrP:
         free(mast);
     }
     if(env) free(env);
+    pthread_cleanup();
     log_close();
     exit(EXIT_FAILURE);
     return;
